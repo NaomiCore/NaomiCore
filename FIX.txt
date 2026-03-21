@@ -11,6 +11,3 @@ AutoClose (close gossip menu automatically after gossip is selected, if set to 1
 3. There seems to be an issue with attack speed and it's interaction with haste. The problem presents itself noticeably, when acquiring haste on a low level character. Once you level up, you maintain the fast attack speed that you acquired by gaining haste at a lower level. In essence, the haste rating to haste % relationship allows you to drastically reduce your attack speed at a lower level, and it is maintained when you level up.
 
 I suspect it is related to m_modAttackSpeedPct in Unit, which is never recalculated when leveling up, and therefore maintains an incorrect relationship with haste. Relogging does "fix" the problem, but this should not be happening in the first place.
-
-
-менял PathGenerator.cpp, PathGenerator.h если будет глючить что-то заенить на оригинал!
