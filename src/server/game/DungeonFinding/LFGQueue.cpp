@@ -395,7 +395,7 @@ LfgCompatibility LFGQueue::CheckCompatibility(GuidList check)
     }
 
     // Check if more than one LFG group and number of players joining
-    uint8 numPlayers = (sConfigMgr->GetIntDefault("SoloLFG", 0)); //LFG Solo! //Default - uint8 numPlayers = 0;
+    uint8 numPlayers = 0;
     uint8 numLfgGroups = 0;
     for (GuidList::const_iterator it = check.begin(); it != check.end() && numLfgGroups < 2 && numPlayers <= MAX_GROUP_SIZE; ++it)
     {
