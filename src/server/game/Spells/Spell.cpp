@@ -3514,7 +3514,10 @@ void Spell::_cast(bool skipCheck)
     }
 
     // CAST SPELL
+    if (!(m_spellInfo->IsChanneled() && (m_spellInfo->AttributesEx2 & 0x00001000)))
+    {
     SendSpellCooldown();
+    }
 
     HandleLaunchPhase();
 
@@ -3927,6 +3930,12 @@ void Spell::finish(bool ok)
 
     if (unitCaster->HasUnitState(UNIT_STATE_CASTING) && !unitCaster->IsNonMeleeSpellCast(false, false, true))
         unitCaster->ClearUnitState(UNIT_STATE_CASTING);
+
+    // [FIX] If the cast is interrupted (movement/cancellation) and it is a player, reset the CD
+    if (!ok && unitCaster->IsPlayer() && m_spellInfo->IsChanneled() && (m_spellInfo->AttributesEx2 & 0x00001000))
+    {
+    unitCaster->ToPlayer()->GetSpellHistory()->ResetCooldown(m_spellInfo->Id, true);
+    }
 
     // Unsummon summon as possessed creatures on spell cancel
     if (m_spellInfo->IsChanneled() && unitCaster->GetTypeId() == TYPEID_PLAYER)
