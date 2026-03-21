@@ -1,0 +1,16 @@
+1.Conditions do not affect spell_loot_template entries
+- Conditions for entries in the spell_loot_template do not affect loot outcomes in any way shape or form. This seems to mostly affect custom modifications (I'm not sure a single spell_loot_template entry does use conditions by default), but can be reproduced fairly quickly by adding a condition to any spell_loot_template entry.
+
+2.Core/Gossip: gossip_menu_option new params
+- We need the following columns in gossip_menu_option:
+
+CastSpellID (spell to cast on player when gossip option is selected) (not just SpellID because it exists in master branch, "in master that field is sent to client to display spell tooltips in gossip menu, not for casting") . There should be a check to force player to cast spell in case spell is selfcast
+IsTriggered (cast spell with triggered cast flag if set to 1 (needed for some spells))
+AutoClose (close gossip menu automatically after gossip is selected, if set to 1)
+
+3. There seems to be an issue with attack speed and it's interaction with haste. The problem presents itself noticeably, when acquiring haste on a low level character. Once you level up, you maintain the fast attack speed that you acquired by gaining haste at a lower level. In essence, the haste rating to haste % relationship allows you to drastically reduce your attack speed at a lower level, and it is maintained when you level up.
+
+I suspect it is related to m_modAttackSpeedPct in Unit, which is never recalculated when leveling up, and therefore maintains an incorrect relationship with haste. Relogging does "fix" the problem, but this should not be happening in the first place.
+
+
+менял PathGenerator.cpp, PathGenerator.h если будет глючить что-то заенить на оригинал!
