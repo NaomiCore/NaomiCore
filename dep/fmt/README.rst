@@ -385,7 +385,7 @@ Projects using this library
 
 * `Touch Surgery <https://www.touchsurgery.com/>`_: surgery simulator
 
-* `NaomiCore <https://github.com/NaomiCore>`_: open-source
+* `TrinityCore <https://github.com/TrinityCore/TrinityCore>`_: open-source
   MMORPG framework
 
 * `Windows Terminal <https://github.com/microsoft/terminal>`_: the new Windows
