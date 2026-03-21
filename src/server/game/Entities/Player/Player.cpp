@@ -20468,7 +20468,7 @@ void Player::StopCastingCharm()
         {
             ExitVehicle();
 
-            // Temporary for issue https://github.com/NaomiCore/issues/24876
+            // Temporary for issue https://github.com/NaomiCore/NaomiCore
             if (!GetCharmedGUID().IsEmpty() && !charm->HasAuraTypeWithCaster(SPELL_AURA_CONTROL_VEHICLE, GetGUID()))
             {
                 TC_LOG_FATAL("entities.player", "Player::StopCastingCharm Player '{}' ({}) is not able to uncharm vehicle ({}) because of missing SPELL_AURA_CONTROL_VEHICLE",

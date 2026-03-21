@@ -284,7 +284,7 @@ bool DBUpdater<T>::Populate(DatabaseWorkerPool<T>& pool)
             {
                 std::string const filename = base.filename().generic_string();
                 std::string const workdir = boost::filesystem::current_path().generic_string();
-                TC_LOG_ERROR("sql.updates", " • File \"{}\" is missing, download it from \"https://github.com/NaomiCore/releases\"" \
+                TC_LOG_ERROR("sql.updates", " • File \"{}\" is missing, download it from \"https://github.com/NaomiCore/NaomiCore\"" \
                     " uncompress it and place the file \"{}\" in the directory \"{}\".", filename, filename, workdir);
                 break;
             }
