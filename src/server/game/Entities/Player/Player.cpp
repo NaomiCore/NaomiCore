@@ -2436,7 +2436,7 @@ void Player::GiveLevel(uint8 level)
     SetUInt32Value(PLAYER_NEXT_LEVEL_XP, sObjectMgr->GetXPForLevel(level));
 
     //update level, max level of skills
-    m_Played_time[PLAYED_TIME_LEVEL] = 0;                   // Level Played Time reset
+    m_Played_time[PLAYED_TIME_LEVEL] = 0;       // Level Played Time reset
 
     _ApplyAllLevelScaleItemMods(false);
 
@@ -13734,10 +13734,6 @@ void Player::ApplyEnchantment(Item* item, EnchantmentSlot slot, bool apply, bool
                             HandleStatFlatModifier(UNIT_MOD_ATTACK_POWER_RANGED, TOTAL_VALUE, float(enchant_amount), apply);
                             TC_LOG_DEBUG("entities.player.items", "+ {} RANGED_ATTACK_POWER", enchant_amount);
                             break;
-//                        case ITEM_MOD_FERAL_ATTACK_POWER:
-//                            ApplyFeralAPBonus(enchant_amount, apply);
-//                            TC_LOG_DEBUG("entities.player.items", "+ {} FERAL_ATTACK_POWER", enchant_amount);
-//                            break;
                         case ITEM_MOD_MANA_REGENERATION:
                             ApplyManaRegenBonus(enchant_amount, apply);
                             TC_LOG_DEBUG("entities.player.items", "+ {} MANA_REGENERATION", enchant_amount);
