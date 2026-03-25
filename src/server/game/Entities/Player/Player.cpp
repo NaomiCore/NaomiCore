@@ -2461,7 +2461,6 @@ void Player::GiveLevel(uint8 level)
     UpdateDamagePhysical(BASE_ATTACK);
     UpdateDamagePhysical(OFF_ATTACK);
     UpdateDamagePhysical(RANGED_ATTACK);
-    // ------------------------------------
 
     if (sWorld->getBoolConfig(CONFIG_ALWAYS_MAXSKILL)) // Max weapon skill when leveling up
         UpdateWeaponsSkillsToMaxSkillsForLevel();
@@ -13922,7 +13921,6 @@ void Player::PrepareGossipMenu(WorldObject* source, uint32 menuId /*= 0*/, bool 
                 menuId = templateMenuId;
         }
     }
-    // -----------------------------------------------------
 
     menu->GetGossipMenu().SetMenuId(menuId);
 
