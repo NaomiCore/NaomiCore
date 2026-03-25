@@ -22,6 +22,7 @@
 #include "ObjectGuid.h"
 #include "Optional.h"
 #include <string>
+#include <shared_mutex>
 
 struct CharacterCacheEntry
 {
@@ -33,40 +34,46 @@ struct CharacterCacheEntry
     uint8 Sex;
     uint8 Level;
     ObjectGuid::LowType GuildId;
-    uint32 ArenaTeamId[3];
+    uint32 ArenaTeamId[3]; // 2v2, 3v3, 5v5
 };
 
 class TC_GAME_API CharacterCache
 {
-    public:
-        CharacterCache();
-        ~CharacterCache();
-        static CharacterCache* instance();
+public:
+    CharacterCache();
+    ~CharacterCache();
+    static CharacterCache* instance();
 
-        void LoadCharacterCacheStorage();
-        void AddCharacterCacheEntry(ObjectGuid const& guid, uint32 accountId, std::string const& name, uint8 gender, uint8 race, uint8 playerClass, uint8 level);
-        void DeleteCharacterCacheEntry(ObjectGuid const& guid, std::string const& name);
+    void LoadCharacterCacheStorage();
+    void AddCharacterCacheEntry(ObjectGuid const& guid, uint32 accountId, std::string name, uint8 gender, uint8 race, uint8 playerClass, uint8 level);
+    void DeleteCharacterCacheEntry(ObjectGuid const& guid, std::string name);
 
-        void UpdateCharacterData(ObjectGuid const& guid, std::string const& name, Optional<uint8> gender = {}, Optional<uint8> race = {});
-        void UpdateCharacterLevel(ObjectGuid const& guid, uint8 level);
-        void UpdateCharacterAccountId(ObjectGuid const& guid, uint32 accountId);
-        void UpdateCharacterGuildId(ObjectGuid const& guid, ObjectGuid::LowType guildId);
-        void UpdateCharacterArenaTeamId(ObjectGuid const& guid, uint8 slot, uint32 arenaTeamId);
+    void UpdateCharacterData(ObjectGuid const& guid, std::string name, Optional<uint8> gender = {}, Optional<uint8> race = {});
+    void UpdateCharacterLevel(ObjectGuid const& guid, uint8 level);
+    void UpdateCharacterAccountId(ObjectGuid const& guid, uint32 accountId);
+    void UpdateCharacterGuildId(ObjectGuid const& guid, ObjectGuid::LowType guildId);
+    void UpdateCharacterArenaTeamId(ObjectGuid const& guid, uint8 slot, uint32 arenaTeamId);
 
-        bool HasCharacterCacheEntry(ObjectGuid const& guid) const;
-        CharacterCacheEntry const* GetCharacterCacheByGuid(ObjectGuid const& guid) const;
-        CharacterCacheEntry const* GetCharacterCacheByName(std::string const& name) const;
+    bool HasCharacterCacheEntry(ObjectGuid const& guid) const;
+    CharacterCacheEntry const* GetCharacterCacheByGuid(ObjectGuid const& guid) const;
+    CharacterCacheEntry const* GetCharacterCacheByName(std::string name) const;
 
-        ObjectGuid GetCharacterGuidByName(std::string const& name) const;
-        bool GetCharacterNameByGuid(ObjectGuid guid, std::string& name) const;
-        uint32 GetCharacterTeamByGuid(ObjectGuid guid) const;
-        uint32 GetCharacterAccountIdByGuid(ObjectGuid guid) const;
-        uint32 GetCharacterAccountIdByName(std::string const& name) const;
-        uint8 GetCharacterLevelByGuid(ObjectGuid guid) const;
-        ObjectGuid::LowType GetCharacterGuildIdByGuid(ObjectGuid guid) const;
-        uint32 GetCharacterArenaTeamIdByGuid(ObjectGuid guid, uint8 type) const;
+    ObjectGuid GetCharacterGuidByName(std::string name) const;
+    bool GetCharacterNameByGuid(ObjectGuid guid, std::string& name) const;
+    uint32 GetCharacterTeamByGuid(ObjectGuid guid) const;
+    uint32 GetCharacterAccountIdByGuid(ObjectGuid guid) const;
+    uint32 GetCharacterAccountIdByName(std::string name) const;
+    uint8 GetCharacterLevelByGuid(ObjectGuid guid) const;
+    ObjectGuid::LowType GetCharacterGuildIdByGuid(ObjectGuid guid) const;
+    uint32 GetCharacterArenaTeamIdByGuid(ObjectGuid guid, uint8 type) const;
+
+private:
+    mutable std::shared_mutex _cacheLock;
+    void NormalizeName(std::string& name) const;
+    void AddCharacterCacheEntryInternal(ObjectGuid const& guid, uint32 accountId, std::string name, uint8 gender, uint8 race, uint8 playerClass, uint8 level);
 };
 
 #define sCharacterCache CharacterCache::instance()
 
 #endif // CharacterCache_h__
+

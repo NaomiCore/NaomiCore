@@ -25,6 +25,9 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include <unordered_map>
+#include <shared_mutex>
+#include <algorithm>
+#include <cctype>
 
 namespace
 {
@@ -41,15 +44,24 @@ CharacterCache* CharacterCache::instance()
     return &instance;
 }
 
+void CharacterCache::NormalizeName(std::string& name) const
+{
+    if (name.empty())
+        return;
+
+    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::tolower(c); });
+    name[0] = std::toupper(name[0]);
+}
+
 void CharacterCache::LoadCharacterCacheStorage()
 {
+    std::unique_lock<std::shared_mutex> lock(_cacheLock);
+
     _characterCacheStore.clear();
     _characterCacheByNameStore.clear();
 
     uint32 oldMSTime = getMSTime();
 
-    // Исправлено: Порядок колонок теперь соответствует структуре твоей базы (DESC characters)
-    // Добавлено: Игнорируем персонажей, у которых заполнена дата удаления (deleteDate IS NULL)
     QueryResult result = CharacterDatabase.Query("SELECT guid, account, name, gender, race, class, level FROM characters WHERE deleteDate IS NULL");
     if (!result)
     {
@@ -60,14 +72,10 @@ void CharacterCache::LoadCharacterCacheStorage()
     do
     {
         Field* fields = result->Fetch();
-        
-        // В твоей базе guid - это int(10) unsigned
         ObjectGuid guid = ObjectGuid::Create<HighGuid::Player>(fields[0].GetUInt32());
-        
-        // Индексы теперь строго по порядку SELECT: 
-        // 0:guid, 1:account, 2:name, 3:gender, 4:race, 5:class, 6:level
-        AddCharacterCacheEntry(
-            guid, 
+
+        AddCharacterCacheEntryInternal(
+            guid,
             fields[1].GetUInt32(), // account
             fields[2].GetString(), // name
             fields[3].GetUInt8(),  // gender
@@ -81,8 +89,10 @@ void CharacterCache::LoadCharacterCacheStorage()
     TC_LOG_INFO("server.loading", "Loaded character infos for {} characters in {} ms", _characterCacheStore.size(), GetMSTimeDiffToNow(oldMSTime));
 }
 
-void CharacterCache::AddCharacterCacheEntry(ObjectGuid const& guid, uint32 accountId, std::string const& name, uint8 gender, uint8 race, uint8 playerClass, uint8 level)
+void CharacterCache::AddCharacterCacheEntryInternal(ObjectGuid const& guid, uint32 accountId, std::string name, uint8 gender, uint8 race, uint8 playerClass, uint8 level)
 {
+    NormalizeName(name);
+
     CharacterCacheEntry& data = _characterCacheStore[guid];
     data.Guid = guid;
     data.Name = name;
@@ -92,27 +102,38 @@ void CharacterCache::AddCharacterCacheEntry(ObjectGuid const& guid, uint32 accou
     data.Class = playerClass;
     data.Level = level;
     data.GuildId = 0;
-    
+
     for (uint8 i = 0; i < 3; ++i)
         data.ArenaTeamId[i] = 0;
 
     _characterCacheByNameStore[name] = guid;
 }
 
-void CharacterCache::DeleteCharacterCacheEntry(ObjectGuid const& guid, std::string const& name)
+void CharacterCache::AddCharacterCacheEntry(ObjectGuid const& guid, uint32 accountId, std::string name, uint8 gender, uint8 race, uint8 playerClass, uint8 level)
 {
+    std::unique_lock<std::shared_mutex> lock(_cacheLock);
+    AddCharacterCacheEntryInternal(guid, accountId, name, gender, race, playerClass, level);
+}
+
+void CharacterCache::DeleteCharacterCacheEntry(ObjectGuid const& guid, std::string name)
+{
+    NormalizeName(name);
+    std::unique_lock<std::shared_mutex> lock(_cacheLock);
     _characterCacheStore.erase(guid);
     _characterCacheByNameStore.erase(name);
 }
 
-void CharacterCache::UpdateCharacterData(ObjectGuid const& guid, std::string const& name, Optional<uint8> gender, Optional<uint8> race)
+void CharacterCache::UpdateCharacterData(ObjectGuid const& guid, std::string name, Optional<uint8> gender, Optional<uint8> race)
 {
+    NormalizeName(name);
+    std::unique_lock<std::shared_mutex> lock(_cacheLock);
+
     auto itr = _characterCacheStore.find(guid);
     if (itr == _characterCacheStore.end())
         return;
 
     std::string oldName = itr->second.Name;
-    
+
     if (gender) itr->second.Sex = *gender;
     if (race)   itr->second.Race = *race;
 
@@ -129,24 +150,28 @@ void CharacterCache::UpdateCharacterData(ObjectGuid const& guid, std::string con
 
 void CharacterCache::UpdateCharacterLevel(ObjectGuid const& guid, uint8 level)
 {
+    std::unique_lock<std::shared_mutex> lock(_cacheLock);
     if (auto itr = _characterCacheStore.find(guid); itr != _characterCacheStore.end())
         itr->second.Level = level;
 }
 
 void CharacterCache::UpdateCharacterAccountId(ObjectGuid const& guid, uint32 accountId)
 {
+    std::unique_lock<std::shared_mutex> lock(_cacheLock);
     if (auto itr = _characterCacheStore.find(guid); itr != _characterCacheStore.end())
         itr->second.AccountId = accountId;
 }
 
 void CharacterCache::UpdateCharacterGuildId(ObjectGuid const& guid, ObjectGuid::LowType guildId)
 {
+    std::unique_lock<std::shared_mutex> lock(_cacheLock);
     if (auto itr = _characterCacheStore.find(guid); itr != _characterCacheStore.end())
         itr->second.GuildId = guildId;
 }
 
 void CharacterCache::UpdateCharacterArenaTeamId(ObjectGuid const& guid, uint8 slot, uint32 arenaTeamId)
 {
+    std::unique_lock<std::shared_mutex> lock(_cacheLock);
     if (auto itr = _characterCacheStore.find(guid); itr != _characterCacheStore.end())
     {
         if (slot < 3)
@@ -156,35 +181,46 @@ void CharacterCache::UpdateCharacterArenaTeamId(ObjectGuid const& guid, uint8 sl
 
 bool CharacterCache::HasCharacterCacheEntry(ObjectGuid const& guid) const
 {
+    std::shared_lock<std::shared_mutex> lock(_cacheLock);
     return _characterCacheStore.find(guid) != _characterCacheStore.end();
 }
 
 CharacterCacheEntry const* CharacterCache::GetCharacterCacheByGuid(ObjectGuid const& guid) const
 {
+    std::shared_lock<std::shared_mutex> lock(_cacheLock);
     auto itr = _characterCacheStore.find(guid);
     return (itr != _characterCacheStore.end()) ? &itr->second : nullptr;
 }
 
-CharacterCacheEntry const* CharacterCache::GetCharacterCacheByName(std::string const& name) const
+CharacterCacheEntry const* CharacterCache::GetCharacterCacheByName(std::string name) const
 {
+    NormalizeName(name);
+    std::shared_lock<std::shared_mutex> lock(_cacheLock);
+
     auto itrName = _characterCacheByNameStore.find(name);
     if (itrName != _characterCacheByNameStore.end())
-        return GetCharacterCacheByGuid(itrName->second);
-
+    {
+        auto itr = _characterCacheStore.find(itrName->second);
+        return (itr != _characterCacheStore.end()) ? &itr->second : nullptr;
+    }
     return nullptr;
 }
 
-ObjectGuid CharacterCache::GetCharacterGuidByName(std::string const& name) const
+ObjectGuid CharacterCache::GetCharacterGuidByName(std::string name) const
 {
+    NormalizeName(name);
+    std::shared_lock<std::shared_mutex> lock(_cacheLock);
     auto itr = _characterCacheByNameStore.find(name);
     return (itr != _characterCacheByNameStore.end()) ? itr->second : ObjectGuid::Empty;
 }
 
 bool CharacterCache::GetCharacterNameByGuid(ObjectGuid guid, std::string& name) const
 {
-    if (auto data = GetCharacterCacheByGuid(guid))
+    std::shared_lock<std::shared_mutex> lock(_cacheLock);
+    auto itr = _characterCacheStore.find(guid);
+    if (itr != _characterCacheStore.end())
     {
-        name = data->Name;
+        name = itr->second.Name;
         return true;
     }
     return false;
@@ -192,19 +228,21 @@ bool CharacterCache::GetCharacterNameByGuid(ObjectGuid guid, std::string& name) 
 
 uint32 CharacterCache::GetCharacterTeamByGuid(ObjectGuid guid) const
 {
-    if (auto data = GetCharacterCacheByGuid(guid))
-        return Player::TeamForRace(data->Race);
+    std::shared_lock<std::shared_mutex> lock(_cacheLock);
+    auto itr = _characterCacheStore.find(guid);
+    if (itr != _characterCacheStore.end())
+        return Player::TeamForRace(itr->second.Race);
     return 0;
 }
 
 uint32 CharacterCache::GetCharacterAccountIdByGuid(ObjectGuid guid) const
 {
-    if (auto data = GetCharacterCacheByGuid(guid))
-        return data->AccountId;
-    return 0;
+    std::shared_lock<std::shared_mutex> lock(_cacheLock);
+    auto itr = _characterCacheStore.find(guid);
+    return (itr != _characterCacheStore.end()) ? itr->second.AccountId : 0;
 }
 
-uint32 CharacterCache::GetCharacterAccountIdByName(std::string const& name) const
+uint32 CharacterCache::GetCharacterAccountIdByName(std::string name) const
 {
     if (auto data = GetCharacterCacheByName(name))
         return data->AccountId;
@@ -213,25 +251,27 @@ uint32 CharacterCache::GetCharacterAccountIdByName(std::string const& name) cons
 
 uint8 CharacterCache::GetCharacterLevelByGuid(ObjectGuid guid) const
 {
-    if (auto data = GetCharacterCacheByGuid(guid))
-        return data->Level;
-    return 0;
+    std::shared_lock<std::shared_mutex> lock(_cacheLock);
+    auto itr = _characterCacheStore.find(guid);
+    return (itr != _characterCacheStore.end()) ? itr->second.Level : 0;
 }
 
 ObjectGuid::LowType CharacterCache::GetCharacterGuildIdByGuid(ObjectGuid guid) const
 {
-    if (auto data = GetCharacterCacheByGuid(guid))
-        return data->GuildId;
-    return 0;
+    std::shared_lock<std::shared_mutex> lock(_cacheLock);
+    auto itr = _characterCacheStore.find(guid);
+    return (itr != _characterCacheStore.end()) ? itr->second.GuildId : 0;
 }
 
 uint32 CharacterCache::GetCharacterArenaTeamIdByGuid(ObjectGuid guid, uint8 type) const
 {
-    if (auto data = GetCharacterCacheByGuid(guid))
+    std::shared_lock<std::shared_mutex> lock(_cacheLock);
+    auto itr = _characterCacheStore.find(guid);
+    if (itr != _characterCacheStore.end())
     {
         uint8 slot = ArenaTeam::GetSlotByType(type);
         if (slot < 3)
-            return data->ArenaTeamId[slot];
+            return itr->second.ArenaTeamId[slot];
     }
     return 0;
 }
