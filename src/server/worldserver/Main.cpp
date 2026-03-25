@@ -400,8 +400,8 @@ int main(int argc, char** argv)
        TC_LOG_INFO("server.worldserver", "  ├────────────────────────────────────────────────────────────┤");
        TC_LOG_INFO("server.worldserver", "  │                                                            │");
        TC_LOG_INFO("server.worldserver", "  │  » World of Warcraft: Wrath of the Lich King  :: [Ready]   │");
-       TC_LOG_INFO("server.worldserver", "  │  » Email: xnaomicore@gmail.com                :: [VER 3]   │");
-       TC_LOG_INFO("server.worldserver", "  │  » Created by GetRight - Classic WOW Redesign              │");
+       TC_LOG_INFO("server.worldserver", "  │  » Clean code but powerful TOOLS - Gossip menu option      │");
+       TC_LOG_INFO("server.worldserver", "  │  » Email: xnaomicore@gmail.com   - Classic wow Redesign    │");
        TC_LOG_INFO("server.worldserver", "  ╰────────────────────────────────────────────────────────────╯");
        TC_LOG_INFO("server.worldserver", " ");
 
