@@ -34,9 +34,9 @@ void Trinity::Banner::Show(char const* applicationName, void(*log)(char const* t
     log(R"(    ________________                      Free Software   )");
     log(R"( __/   Information  \___________________________________________ )");
 	log(R"(                                                                   )");
-	log(R"( - Wrath of The Lich King 3      ›     - Assembly - 20.03.2026)"); 
+	log(R"( - Wrath of The Lich King 3      ›     - Assembly - 25.03.2026)"); 
 	log(R"( - Blizzlike Wow - Server        ›     - Build - 3.6.2 - UC3 )"); 
-	log(R"( - Mods used in the assembly     ›     - SoloLFG and FIX Core )");  
+	log(R"( - Mods used in the assembly     ›     - GossipMenu and FIX Core )");  
 	log(R"( - Mail: Forsemark@gmail.com     ›     - Database: UCDB 3.3.5a)" "\n");
     log(R"( )");
 	
