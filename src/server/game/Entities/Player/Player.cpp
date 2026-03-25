@@ -2419,6 +2419,8 @@ void Player::GiveLevel(uint8 level)
     packet.Level = level;
     packet.HealthDelta = int32(classInfo.basehealth) - int32(GetCreateHealth());
 
+    /// @todo find some better solution
+    // for (int i = 0; i < MAX_POWERS; ++i)
     packet.PowerDelta[0] = int32(classInfo.basemana) - int32(GetCreateMana());
     packet.PowerDelta[1] = 0;
     packet.PowerDelta[2] = 0;
@@ -2433,19 +2435,16 @@ void Player::GiveLevel(uint8 level)
 
     SetUInt32Value(PLAYER_NEXT_LEVEL_XP, sObjectMgr->GetXPForLevel(level));
 
-    m_Played_time[PLAYED_TIME_LEVEL] = 0;
+    //update level, max level of skills
+    m_Played_time[PLAYED_TIME_LEVEL] = 0;                   // Level Played Time reset
 
     _ApplyAllLevelScaleItemMods(false);
 
-    // Setting the level
     SetLevel(level);
-
-    // 2. Immediately call the update of all stats. 
-    // Since the level has changed, UpdateAllStats will recalculate the speed modifiers.
-    UpdateAllStats();
 
     UpdateSkillsForLevel();
 
+    // save base values (bonuses already included in stored stats
     for (uint8 i = STAT_STRENGTH; i < MAX_STATS; ++i)
         SetCreateStat(Stats(i), info.stats[i]);
 
@@ -2456,14 +2455,20 @@ void Player::GiveLevel(uint8 level)
     InitTaxiNodesForLevel();
     InitGlyphsForLevel();
 
-    // Final stat update
     UpdateAllStats();
 
-    if (sWorld->getBoolConfig(CONFIG_ALWAYS_MAXSKILL))
+    UpdateAllRatings(); 
+    UpdateDamagePhysical(BASE_ATTACK);
+    UpdateDamagePhysical(OFF_ATTACK);
+    UpdateDamagePhysical(RANGED_ATTACK);
+    // ------------------------------------
+
+    if (sWorld->getBoolConfig(CONFIG_ALWAYS_MAXSKILL)) // Max weapon skill when leveling up
         UpdateWeaponsSkillsToMaxSkillsForLevel();
 
     _ApplyAllLevelScaleItemMods(true);
 
+    // set current level health and mana/energy to maximum after applying all mods.
     SetFullHealth();
     SetFullPower(POWER_MANA);
 
